@@ -52,7 +52,7 @@ def create_app(config_name: ConfigName) -> FastAPI:
 
         await Tortoise.close_connections()
 
-    app = FastAPI(title="price", redirect_slashes=False, lifespan=lifespan)
+    app = FastAPI(title="Price Service", redirect_slashes=False, lifespan=lifespan)
     app.dependency_overrides[get_settings] = provide_settings(config_name)
     setup_logger()
 
