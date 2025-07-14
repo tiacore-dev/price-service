@@ -1,0 +1,92 @@
+import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import Query
+from pydantic import BaseModel, Field
+
+
+class PriceCreateSchema(BaseModel):
+    price_category_id: UUID = Field(...)
+    company_id: UUID = Field(...)
+    sender_city: UUID = Field(...)
+    sender_warehouse: Optional[UUID] = Field(None)
+    recipient_city: UUID = Field(...)
+    recipient_warehouse: Optional[UUID] = Field(None)
+    comment: Optional[str] = Field(None)
+    delivery_duration: int = Field(...)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+
+class PriceEditSchema(BaseModel):
+    price_category_id: Optional[UUID] = Field(None)
+    company_id: Optional[UUID] = Field(None)
+    sender_city: Optional[UUID] = Field(None)
+    sender_warehouse: Optional[UUID] = Field(None)
+    recipient_city: Optional[UUID] = Field(None)
+    recipient_warehouse: Optional[UUID] = Field(None)
+    comment: Optional[str] = Field(None)
+    delivery_duration: Optional[int] = Field(None)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+
+class PriceSchema(BaseModel):
+    id: UUID = Field(..., alias="price_id")
+    price_category_id: UUID = Field(...)
+    company_id: UUID = Field(...)
+    sender_city: UUID = Field(...)
+    sender_warehouse: Optional[UUID] = Field(None)
+    recipient_city: UUID = Field(...)
+    recipient_warehouse: Optional[UUID] = Field(None)
+    comment: Optional[str] = Field(None)
+    delivery_duration: int
+
+    created_at: datetime.datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime.datetime = Field(...)
+    modified_by: UUID = Field(...)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+
+class PriceResponseSchema(BaseModel):
+    price_id: UUID
+
+
+class PriceListResponseSchema(BaseModel):
+    total: int
+    prices: List[PriceSchema]
+
+
+def price_filter_params(
+    company_id: Optional[UUID] = Query(None, description="Фильтр по компании"),
+    price_category_id: Optional[UUID] = Query(None),
+    sender_city: Optional[UUID] = Query(None),
+    sender_warehouse: Optional[UUID] = Query(None),
+    recipient_city: Optional[UUID] = Query(None),
+    recipient_warehouse: Optional[UUID] = Query(None),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
+    order: Optional[str] = Query("asc", description="asc / desc"),
+    page: Optional[int] = Query(1, ge=1),
+    page_size: Optional[int] = Query(10, ge=1, le=100),
+):
+    return {
+        "price_category_id": price_category_id,
+        "sender_city": sender_city,
+        "company_id": company_id,
+        "sender_warehouse": sender_warehouse,
+        "recipient_city": recipient_city,
+        "recipient_warehouse": recipient_warehouse,
+        "sort_by": sort_by,
+        "order": order,
+        "page": page,
+        "page_size": page_size,
+    }

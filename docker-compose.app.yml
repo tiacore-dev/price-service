@@ -1,0 +1,28 @@
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-price-${CONFIG_NAME}
+    restart: always
+    networks:
+    - price_network
+
+  web:
+    image: ${DOCKERHUB_USERNAME}/price-service:${TAG}
+    container_name: price-service-${CONFIG_NAME}
+    restart: always
+    ports:
+      - "${PORT}:8000"
+    volumes:
+      - ./logs:/app/logs
+      - .env:/app/.env
+    command: >
+      gunicorn -c gunicorn.conf.py run:app
+    networks:
+      - price_network
+
+
+networks:
+  price_network:
+    external: true
