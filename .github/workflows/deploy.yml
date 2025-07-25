@@ -79,7 +79,9 @@ jobs:
           context: .
           push: true
           target: prod
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/price-service:${{ github.sha }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/price-service:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/price-service:latest
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/price-service:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/price-service:buildcache,mode=max
           build-args: |
