@@ -101,6 +101,8 @@ async def get_price_details(
 
     if filters.get("company_id"):
         query &= Q(company_id=filters.get("company_id"))
+    if filters.get("price_id"):
+        query &= Q(price_id=filters.get("price_id"))
     if filters.get("price_detail_name"):
         query &= Q(name__icontains=filters["price_detail_name"])
 

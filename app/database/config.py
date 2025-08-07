@@ -7,7 +7,7 @@ from app.config import _load_settings
 
 load_dotenv()
 
-CONFIG_NAME = ConfigName(os.getenv("CONFIG_NAME", "Development"))
+CONFIG_NAME = ConfigName(os.getenv("CONFIG_NAME", "development"))
 settings = _load_settings(config_name=CONFIG_NAME)
 
 TORTOISE_ORM = {
