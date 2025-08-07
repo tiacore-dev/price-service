@@ -114,11 +114,17 @@ async def get_price_set_relations(
     page_size = filters.get("page_size", 10)
 
     total_count = await PriceSetRelation.filter(query).count()
-    relations = await PriceSetRelation.filter(query).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
+    relations = (
+        await PriceSetRelation.filter(query)
+        .order_by(order_by)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .prefetch_related("price")
+    )
 
     return PriceSetRelationListResponseSchema(
         total=total_count,
-        relations=[PriceSetRelationSchema.model_validate(r) for r in relations],
+        relations=[PriceSetRelationSchema.model_validate(relation, from_attributes=True) for relation in relations],
     )
 
 
@@ -132,7 +138,7 @@ async def get_price_set_relation(
     context=Depends(require_permission_in_context("view_price_set_relation")),
 ):
     logger.info(f"Запрос на просмотр связи: {relation_id}")
-    relation = await PriceSetRelation.filter(id=relation_id).first()
+    relation = await PriceSetRelation.filter(id=relation_id).prefetch_related("price").first()
 
     if relation is None:
         logger.warning(f"Связь {relation_id} не найдена")

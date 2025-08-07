@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field
 
+from app.pydantic_models.price_models import PriceSchema
+
 
 class PriceSetRelationCreateSchema(BaseModel):
     price_id: UUID = Field(..., alias="price_id")
@@ -28,7 +30,7 @@ class PriceSetRelationEditSchema(BaseModel):
 
 class PriceSetRelationSchema(BaseModel):
     id: UUID = Field(..., alias="relation_id")
-    price_id: UUID = Field(..., alias="price_id")
+    price: PriceSchema = Field(...)
     price_set_id: UUID = Field(..., alias="price_set_id")
     company_id: UUID = Field(...)
 
