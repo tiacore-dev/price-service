@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -57,8 +57,8 @@ def price_set_relation_filter_params(
     price_id: Optional[UUID] = Query(None, description="Фильтр по ID цены"),
     price_set_id: Optional[UUID] = Query(None, description="Фильтр по ID набора цен"),
     company_id: Optional[UUID] = Query(None, description="Фильтр по компании"),
-    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
-    order: Optional[str] = Query("asc", description="asc / desc"),
+    sort_by: Literal["created_at"] = Query("created_at", description="Поле сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),
 ):

@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -51,8 +51,8 @@ class PriceSetListResponseSchema(BaseModel):
 def price_set_filter_params(
     price_set_name: Optional[str] = Query(None, description="Фильтр по названию набора цен"),
     company_id: Optional[UUID] = Query(None, description="Фильтр по компании"),
-    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
-    order: Optional[str] = Query("asc", description="asc / desc"),
+    sort_by: Literal["created_at", "name"] = Query("created_at", description="Поле сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),
 ):

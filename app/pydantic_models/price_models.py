@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -73,8 +73,8 @@ def price_filter_params(
     sender_warehouse: Optional[UUID] = Query(None),
     recipient_city: Optional[UUID] = Query(None),
     recipient_warehouse: Optional[UUID] = Query(None),
-    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
-    order: Optional[str] = Query("asc", description="asc / desc"),
+    sort_by: Literal["created_at", "delivery_duration"] = Query("created_at", description="Поле сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),
 ):
