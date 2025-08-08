@@ -11,7 +11,7 @@ class PriceDetailCreateSchema(BaseModel):
     price_id: UUID
     company_id: UUID
 
-    weight_from: Decimal = Field(..., ge=0.01)
+    weight_from: Decimal = Field(..., ge=0)
     weight_to: Decimal = Field(..., ge=0.01)
     weight_extra: Decimal = Field(..., ge=0.01)
 
@@ -27,7 +27,7 @@ class PriceDetailEditSchema(BaseModel):
     price_id: Optional[UUID] = Field(None)
     company_id: Optional[UUID] = Field(None)
 
-    weight_from: Optional[Decimal] = Field(None, ge=0.01)
+    weight_from: Optional[Decimal] = Field(None, ge=0)
     weight_to: Optional[Decimal] = Field(None, ge=0.01)
     weight_extra: Optional[Decimal] = Field(None, ge=0.01)
 
