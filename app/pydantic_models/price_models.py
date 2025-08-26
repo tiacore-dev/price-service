@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field
 
+from app.database.models import ServiceType
+
 
 class PriceCreateSchema(BaseModel):
     price_category_id: UUID = Field(...)
@@ -15,6 +17,7 @@ class PriceCreateSchema(BaseModel):
     recipient_warehouse: Optional[UUID] = Field(None)
     comment: Optional[str] = Field(None)
     delivery_duration: int = Field(...)
+    service_type: ServiceType = Field(...)
 
     class Config:
         from_attributes = True
@@ -30,6 +33,7 @@ class PriceEditSchema(BaseModel):
     recipient_warehouse: Optional[UUID] = Field(None)
     comment: Optional[str] = Field(None)
     delivery_duration: Optional[int] = Field(None)
+    service_type: Optional[ServiceType] = Field(None)
 
     class Config:
         from_attributes = True
@@ -46,6 +50,7 @@ class PriceSchema(BaseModel):
     recipient_warehouse: Optional[UUID] = Field(None)
     comment: Optional[str] = Field(None)
     delivery_duration: int
+    service_type: ServiceType = Field(...)
 
     created_at: datetime.datetime = Field(...)
     created_by: UUID = Field(...)
@@ -73,6 +78,7 @@ def price_filter_params(
     sender_warehouse: Optional[UUID] = Query(None),
     recipient_city: Optional[UUID] = Query(None),
     recipient_warehouse: Optional[UUID] = Query(None),
+    service_type: Optional[ServiceType] = Query(None),
     sort_by: Literal["created_at", "delivery_duration"] = Query("created_at", description="Поле сортировки"),
     order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
@@ -85,6 +91,7 @@ def price_filter_params(
         "sender_warehouse": sender_warehouse,
         "recipient_city": recipient_city,
         "recipient_warehouse": recipient_warehouse,
+        "service_type": service_type,
         "sort_by": sort_by,
         "order": order,
         "page": page,

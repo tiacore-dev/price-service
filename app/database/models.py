@@ -1,7 +1,26 @@
 import uuid
+from enum import Enum
 
 from tortoise import fields
 from tortoise.models import Model
+
+
+class ServiceType(str, Enum):
+    STANDARD = "standard"  # Стандартная доставка
+    EXPRESS = "express"  # Срочная доставка
+    THERMAL = "thermal"  # Терморежим
+    FRAGILE = "fragile"  # Хрупкий груз
+    PERSONAL = "personal"  # Лично в руки
+
+    @property
+    def label(self) -> str:
+        return {
+            ServiceType.STANDARD: "Стандартная доставка",
+            ServiceType.EXPRESS: "Срочная доставка",
+            ServiceType.THERMAL: "Терморежим",
+            ServiceType.FRAGILE: "Хрупкий груз",
+            ServiceType.PERSONAL: "Лично в руки",
+        }[self]
 
 
 class PriceCategory(Model):
@@ -29,6 +48,7 @@ class Price(Model):
     recipient_warehouse = fields.UUIDField(null=True)
     comment = fields.TextField(null=True)
     delivery_duration = fields.IntField()
+    service_type = fields.CharEnumField(ServiceType)
 
     created_at = fields.DatetimeField(auto_now_add=True)
     created_by = fields.UUIDField()

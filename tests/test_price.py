@@ -18,6 +18,7 @@ async def test_add_price(
         "sender_city": str(uuid4()),
         "recipient_city": str(uuid4()),
         "delivery_duration": 2,
+        "service_type": "standard",
     }
 
     response = await test_app.post("/api/prices/add", headers=headers, json=data)

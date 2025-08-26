@@ -39,6 +39,7 @@ async def seed_price(seed_company, seed_user, seed_price_category: PriceCategory
         sender_city=uuid4(),
         recipient_city=uuid4(),
         delivery_duration=2,
+        service_type="standard",
     )
     return price
 

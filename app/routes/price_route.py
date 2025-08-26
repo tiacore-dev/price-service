@@ -108,6 +108,8 @@ async def get_prices(
         query &= Q(parent_id=filters["recipient_city"])
     if filters.get("recipient_warehouse"):
         query &= Q(nrecipient_warehouse=filters["recipient_warehouse"])
+    if filters.get("service_type"):
+        query &= Q(service_type=filters["service_type"])
 
     sort_by = filters.get("sort_by", "created_at")
 
