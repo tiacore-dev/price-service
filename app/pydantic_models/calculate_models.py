@@ -2,8 +2,7 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
-from app.database.models import ServiceType
+from tiacore_lib.enums import ServiceType
 
 
 class GetPriceIDSchema(BaseModel):

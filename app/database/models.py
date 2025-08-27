@@ -1,26 +1,8 @@
 import uuid
-from enum import Enum
 
+from tiacore_lib.enums import ServiceType
 from tortoise import fields
 from tortoise.models import Model
-
-
-class ServiceType(str, Enum):
-    STANDARD = "standard"  # Стандартная доставка
-    EXPRESS = "express"  # Срочная доставка
-    THERMAL = "thermal"  # Терморежим
-    FRAGILE = "fragile"  # Хрупкий груз
-    PERSONAL = "personal"  # Лично в руки
-
-    @property
-    def label(self) -> str:
-        return {
-            ServiceType.STANDARD: "Стандартная доставка",
-            ServiceType.EXPRESS: "Срочная доставка",
-            ServiceType.THERMAL: "Терморежим",
-            ServiceType.FRAGILE: "Хрупкий груз",
-            ServiceType.PERSONAL: "Лично в руки",
-        }[self]
 
 
 class PriceCategory(Model):
