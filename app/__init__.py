@@ -45,7 +45,7 @@ def create_app(config_name: ConfigName) -> FastAPI:
                 queue_name="price-service",
                 routing_keys=["user.*"],
             )
-            task = asyncio.create_task(consumer.connect_and_consume(partial(handle_user_event, settings=settings)))
+            task = asyncio.create_task(consumer.connect_and_consume(partial(handle_user_event, settings=settings)))  # type: ignore
             app.state.rabbit_task = task
 
         yield

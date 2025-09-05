@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -19,3 +20,13 @@ class GetPriceIDSchema(BaseModel):
 
 class GetPriceIDResponseSchema(BaseModel):
     price_id: Optional[UUID] = Field(None)
+
+
+class QuoteRequest(BaseModel):
+    base_value: Decimal = Field(..., description="Расчётный вес (max(вес, объём*200))")
+
+
+class QuoteResponse(BaseModel):
+    summ: Decimal
+    price_detail_id: UUID
+    extra_increments: int

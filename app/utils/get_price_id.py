@@ -31,9 +31,7 @@ async def get_price_id(
     else:
         qs = qs.filter(Q(recipient_warehouse__isnull=True))
 
-    # при таком фильтре допускаются только (= указанному складу) ИЛИ NULL,
-    # поэтому сортировка поднимет точные совпадения выше NULL
-    price = await qs.order_by("sender_warehouse", "recipient_warehouse").first()
+    price = await qs.first()
     if not price:
         return None
     return price.id
