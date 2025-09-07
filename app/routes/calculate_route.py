@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from tiacore_lib.handlers.auth_handler import get_current_user
 
 from app.database.models import Price, PriceDetail
-from app.handlers.calculate_handler import InvalidPriceDetail, compute_quote_amount
+from app.handlers.calculate_handler import InvalidPriceDetail, PriceRangeNotFound, compute_quote_amount
 from app.pydantic_models.calculate_models import GetPriceIDResponseSchema, GetPriceIDSchema, QuoteRequest, QuoteResponse
 from app.utils.get_price_id import get_price_id
 
@@ -33,14 +33,26 @@ async def quote_price(price_id: UUID, body: QuoteRequest):
 
     details = await PriceDetail.filter(price_id=price_id).order_by("weight_from")
 
+    # ✅ Явно обрабатываем пустой прайс
+    if not details:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Для этого прайса нет ни одной строки (PriceDetail)",
+        )
+
     try:
+        # ✅ вне диапазонов — используем верхний диапазон
         result = compute_quote_amount(
-            body.base_value,
-            details,
+            base_value=body.base_value,
+            price_details=details,
             fallback_to_top_if_out_of_range=True,
         )
     except InvalidPriceDetail as e:
+        # некорректные данные в строке прайса
         raise HTTPException(status_code=400, detail=str(e))
+    except PriceRangeNotFound as e:
+        # на всякий случай: сюда попадём только если compute_quote_amount изменят
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     return QuoteResponse(
         summ=result.total_amount,
