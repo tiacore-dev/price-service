@@ -32,7 +32,7 @@ class PriceDetailEditSchema(BaseModel):
     weight_extra: Optional[Decimal] = Field(None, ge=0.01)
 
     value_fix: Optional[Decimal] = Field(None, ge=0.01)
-    value_extra: Optional[Decimal] = Field(None, ge=0.01)
+    value_extra: Optional[Decimal] = Field(None, ge=0)
 
     class Config:
         from_attributes = True

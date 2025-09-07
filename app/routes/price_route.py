@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
@@ -8,9 +10,11 @@ from tiacore_lib.handlers.permissions_handler import (
 )
 from tiacore_lib.utils.validate_helpers import validate_company_access
 from tortoise.expressions import Q
+from tortoise.transactions import in_transaction
 
-from app.database.models import Price
+from app.database.models import Price, PriceDetail
 from app.pydantic_models.price_models import (
+    PriceBulkCreateSchema,
     PriceCreateSchema,
     PriceEditSchema,
     PriceListResponseSchema,
@@ -20,6 +24,17 @@ from app.pydantic_models.price_models import (
 )
 
 price_router = APIRouter()
+
+Q3 = Decimal("0.001")  # веса: 3 знака
+Q2 = Decimal("0.01")  # деньги: 2 знака
+
+
+def q3(x: Decimal) -> Decimal:
+    return x.quantize(Q3, rounding=ROUND_HALF_UP)
+
+
+def q2(x: Decimal) -> Decimal:
+    return x.quantize(Q2, rounding=ROUND_HALF_UP)
 
 
 @price_router.post(
@@ -42,6 +57,100 @@ async def add_price(
         raise HTTPException(status_code=500, detail="Не удалось создать цену")
 
     logger.success(f"цена ({price.id}) успешно создан")
+    return PriceResponseSchema(price_id=price.id)
+
+
+@price_router.post(
+    "/add-bulk",
+    response_model=PriceResponseSchema,
+    summary="Создать цену и добавить прайс-детали (bulk)",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_price_with_details(
+    data: PriceBulkCreateSchema = Body(...),
+    context=Depends(with_permission_and_company_from_body_check("add_price")),
+):
+    """
+    Создаёт Price и связанные PriceDetail за один запрос.
+    Правила валидации:
+      - как минимум один detail обязателен
+      - weight_from <= weight_to
+      - weight_extra > 0
+      - диапазоны отсортированы по weight_from и НЕ перекрываются (prev.weight_to < next.weight_from)
+    Все числовые значения квантуются: веса — до 0.001, деньги — до 0.01.
+    """
+    if not data.details:
+        raise HTTPException(status_code=422, detail="Нужно указать хотя бы один диапазон (details)")
+
+    # подготовим и проверим диапазоны на стороне приложения
+    prepared = []
+    for i, d in enumerate(data.details, start=1):
+        wf = q3(Decimal(str(d.weight_from)))
+        wt = q3(Decimal(str(d.weight_to)))
+        we = q3(Decimal(str(d.weight_extra)))
+        vf = q2(Decimal(str(d.value_fix)))
+        ve = q2(Decimal(str(d.value_extra)))
+
+        if wf > wt:
+            raise HTTPException(status_code=422, detail=f"[details[{i}]] weight_from ({wf}) > weight_to ({wt})")
+        if we <= Decimal("0"):
+            raise HTTPException(status_code=422, detail=f"[details[{i}]] weight_extra должен быть > 0")
+
+        prepared.append(
+            {
+                "company_id": d.company_id,  # может быть None, подставим позже
+                "weight_from": wf,
+                "weight_to": wt,
+                "weight_extra": we,
+                "value_fix": vf,
+                "value_extra": ve,
+            }
+        )
+
+    # сортируем по нижней границе
+    prepared.sort(key=lambda x: (x["weight_from"], x["weight_to"]))
+
+    # проверка на перекрытия: требуем strict — prev.weight_to < next.weight_from
+    prev_to: Optional[Decimal] = None
+    for i, band in enumerate(prepared, start=1):
+        if prev_to is not None and band["weight_from"] <= prev_to:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Перекрытие диапазонов: details[{i - 1}].weight_to={prev_to} "
+                f"и details[{i}].weight_from={band['weight_from']}",
+            )
+        prev_to = band["weight_to"]
+
+    # транзакция: и Price, и все PriceDetail атомарно
+    async with in_transaction() as conn:
+        price = await Price.create(
+            created_by=context["user_id"],
+            modified_by=context["user_id"],
+            using_db=conn,
+            **data.model_dump(exclude={"details"}, exclude_unset=True),
+        )
+
+        # bulk_create PriceDetail
+        rows = []
+        for band in prepared:
+            rows.append(
+                PriceDetail(
+                    created_by=context["user_id"],
+                    modified_by=context["user_id"],
+                    price_id=price.id,
+                    company_id=band["company_id"] or data.company_id,  # подставляем из Price при отсутствии
+                    weight_from=band["weight_from"],
+                    weight_to=band["weight_to"],
+                    weight_extra=band["weight_extra"],
+                    value_fix=band["value_fix"],
+                    value_extra=band["value_extra"],
+                )
+            )
+
+        if rows:
+            await PriceDetail.bulk_create(rows, using_db=conn)
+
+    logger.success(f"цена ({price.id}) и {len(rows)} диапазонов успешно созданы")
     return PriceResponseSchema(price_id=price.id)
 
 

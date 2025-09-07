@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 from typing import List, Literal, Optional
 from uuid import UUID
 
@@ -22,6 +23,37 @@ class PriceCreateSchema(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
+
+
+class PriceDetailItemCreateSchema(BaseModel):
+    # если не передан — возьмём из родительской цены
+    company_id: Optional[UUID] = None
+
+    # веса — 3 знака после запятой по схеме
+    weight_from: Decimal = Field(..., ge=0)
+    weight_to: Decimal = Field(..., ge=0.01)
+    weight_extra: Decimal = Field(..., ge=0.01)
+
+    # деньги — 2 знака после запятой
+    value_fix: Decimal = Field(..., ge=0.01)
+    value_extra: Decimal = Field(..., ge=0)
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+
+class PriceBulkCreateSchema(BaseModel):
+    price_category_id: UUID = Field(...)
+    company_id: UUID = Field(...)
+    sender_city: UUID = Field(...)
+    sender_warehouse: Optional[UUID] = Field(None)
+    recipient_city: UUID = Field(...)
+    recipient_warehouse: Optional[UUID] = Field(None)
+    comment: Optional[str] = Field(None)
+    delivery_duration: int = Field(...)
+    service_type: ServiceType = Field(...)
+    details: List[PriceDetailItemCreateSchema]
 
 
 class PriceEditSchema(BaseModel):
