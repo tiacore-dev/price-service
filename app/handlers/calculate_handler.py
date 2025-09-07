@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import ROUND_CEILING, Decimal, getcontext
-from typing import Iterable
+from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal, getcontext
+from typing import Iterable, List
 from uuid import UUID
 
-from app.database.models import PriceDetail  # Tortoise ORM
+from app.database.models import PriceDetail
 
-getcontext().prec = 28  # достаточная точность для ден. арифметики
+getcontext().prec = 28
 
 
 class PricingError(Exception): ...
@@ -21,9 +21,9 @@ class InvalidPriceDetail(PricingError): ...
 
 @dataclass
 class QuoteResult:
-    total_amount: Decimal  # конечная сумма
-    price_detail_id: UUID  # какой диапазон сработал
-    extra_increments: int  # сколько "добавочных шагов" применили
+    total_amount: Decimal
+    price_detail_id: UUID
+    extra_increments: int
 
 
 def _to_decimal(x) -> Decimal:
@@ -33,43 +33,60 @@ def _to_decimal(x) -> Decimal:
 def compute_quote_amount(
     base_value: Decimal,
     price_details: Iterable[PriceDetail],
+    *,
+    fallback_to_top_if_out_of_range: bool = True,
 ) -> QuoteResult:
     """
-    Алгоритм:
-      1) Идём по price_details (отсортировано по weight_from).
-      2) Ищем detail, где weight_from ≤ base_value ≤ weight_to.
-      3) additional_weight = max(0, base_value - weight_from).
-      4) extra_increments = ceil(additional_weight / weight_increment).
-      5) total_amount = fixed_price + extra_price * extra_increments.
-    Все суммы считаем в Decimal, округляем до 0.01.
+    Ищем price_detail с weight_from ≤ base_value ≤ weight_to.
+    Если не нашли и fallback_to_top_if_out_of_range=True — берём верхний диапазон
+    (последний по порядку), считаем по нему.
+    Формулы:
+      additional_weight = max(0, base_value - weight_from)
+      extra_increments  = ceil(additional_weight / weight_extra)
+      total_amount      = value_fix + value_extra * extra_increments
     """
     bval = _to_decimal(base_value)
+    details: List[PriceDetail] = list(price_details)
+    details.sort(key=lambda d: (_to_decimal(d.weight_from), _to_decimal(d.weight_to)))
 
-    for detail in price_details:
-        weight_from = _to_decimal(detail.weight_from)
-        weight_to = _to_decimal(detail.weight_to)
-        weight_increment = _to_decimal(detail.weight_extra)
-        fixed_price = _to_decimal(detail.value_fix)
-        extra_price = _to_decimal(detail.value_extra)
+    for d in details:
+        wf = _to_decimal(d.weight_from)
+        wt = _to_decimal(d.weight_to)
+        inc = _to_decimal(d.weight_extra)
+        fix = _to_decimal(d.value_fix)
+        add = _to_decimal(d.value_extra)
 
-        if weight_increment <= 0:
-            raise InvalidPriceDetail(f"weight_extra must be > 0 for PriceDetail {detail.id}")
+        if inc <= 0:
+            raise InvalidPriceDetail(f"weight_extra must be > 0 for PriceDetail {d.id}")
 
-        # попадает ли base_value в этот диапазон
-        if not (weight_from <= bval <= weight_to):
-            continue
+        if wf <= bval <= wt:
+            extra = bval - wf
+            if extra < 0:
+                extra = Decimal("0")
+            steps = int((extra / inc).to_integral_value(rounding=ROUND_CEILING))
+            amount = (fix + add * steps).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            return QuoteResult(total_amount=amount, price_detail_id=d.id, extra_increments=steps)
 
-        additional_weight = bval - weight_from
-        if additional_weight < 0:
-            additional_weight = Decimal("0")
+    if not details:
+        raise PriceRangeNotFound("no price details")
 
-        extra_increments = int((additional_weight / weight_increment).to_integral_value(rounding=ROUND_CEILING))
-        total_amount = (fixed_price + extra_price * extra_increments).quantize(Decimal("0.01"))
+    if fallback_to_top_if_out_of_range:
+        # верхний диапазон — самый последний после сортировки
+        d = details[-1]
+        wf = _to_decimal(d.weight_from)
+        inc = _to_decimal(d.weight_extra)
+        fix = _to_decimal(d.value_fix)
+        add = _to_decimal(d.value_extra)
 
-        return QuoteResult(
-            total_amount=total_amount,
-            price_detail_id=detail.id,
-            extra_increments=extra_increments,
-        )
+        if inc <= 0:
+            raise InvalidPriceDetail(f"weight_extra must be > 0 for PriceDetail {d.id}")
 
-    raise PriceRangeNotFound(f"base_value {bval} не попадает ни в один диапазон")
+        extra = bval - wf
+        if extra < 0:
+            extra = Decimal("0")
+        steps = int((extra / inc).to_integral_value(rounding=ROUND_CEILING))
+        amount = (fix + add * steps).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return QuoteResult(total_amount=amount, price_detail_id=d.id, extra_increments=steps)
+
+    # если fallback выключен — ведём себя по-старому
+    raise PriceRangeNotFound("base_value вне диапазонов")

@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException
 from tiacore_lib.handlers.auth_handler import get_current_user
 
 from app.database.models import Price, PriceDetail
-from app.handlers.calculate_handler import InvalidPriceDetail, PriceRangeNotFound, compute_quote_amount
+from app.handlers.calculate_handler import InvalidPriceDetail, compute_quote_amount
 from app.pydantic_models.calculate_models import GetPriceIDResponseSchema, GetPriceIDSchema, QuoteRequest, QuoteResponse
 from app.utils.get_price_id import get_price_id
 
@@ -34,9 +34,11 @@ async def quote_price(price_id: UUID, body: QuoteRequest):
     details = await PriceDetail.filter(price_id=price_id).order_by("weight_from")
 
     try:
-        result = compute_quote_amount(body.base_value, details)
-    except PriceRangeNotFound:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="base_value вне диапазонов прайса")
+        result = compute_quote_amount(
+            body.base_value,
+            details,
+            fallback_to_top_if_out_of_range=True,
+        )
     except InvalidPriceDetail as e:
         raise HTTPException(status_code=400, detail=str(e))
 
