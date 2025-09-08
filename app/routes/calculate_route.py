@@ -1,6 +1,7 @@
+from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException
 from tiacore_lib.handlers.auth_handler import get_current_user
 
 from app.database.models import Price, PriceDetail
@@ -9,6 +10,8 @@ from app.pydantic_models.calculate_models import GetPriceIDResponseSchema, GetPr
 from app.utils.get_price_id import get_price_id
 
 calculate_router = APIRouter()
+
+ZERO = Decimal("0.00")
 
 
 @calculate_router.post(
@@ -33,26 +36,23 @@ async def quote_price(price_id: UUID, body: QuoteRequest):
 
     details = await PriceDetail.filter(price_id=price_id).order_by("weight_from")
 
-    # ✅ Явно обрабатываем пустой прайс
+    # нет ни одной строки — просто 0
     if not details:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Для этого прайса нет ни одной строки (PriceDetail)",
-        )
+        return QuoteResponse(summ=ZERO)  # id=None, increments=0 по умолчанию
 
     try:
-        # ✅ вне диапазонов — используем верхний диапазон
+        # здесь без fallback — если вне диапазонов, вернём 0
         result = compute_quote_amount(
             base_value=body.base_value,
             price_details=details,
-            fallback_to_top_if_out_of_range=True,
+            fallback_to_top_if_out_of_range=False,
         )
+    except PriceRangeNotFound:
+        # base_value не попал ни в один диапазон — просто 0
+        return QuoteResponse(summ=ZERO)
     except InvalidPriceDetail as e:
-        # некорректные данные в строке прайса
+        # поломанные данные прайса — это наша ошибка конфигурации
         raise HTTPException(status_code=400, detail=str(e))
-    except PriceRangeNotFound as e:
-        # на всякий случай: сюда попадём только если compute_quote_amount изменят
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     return QuoteResponse(
         summ=result.total_amount,

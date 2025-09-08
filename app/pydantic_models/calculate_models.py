@@ -28,5 +28,5 @@ class QuoteRequest(BaseModel):
 
 class QuoteResponse(BaseModel):
     summ: Decimal
-    price_detail_id: UUID
-    extra_increments: int
+    price_detail_id: Optional[UUID] = None
+    extra_increments: int = 0
