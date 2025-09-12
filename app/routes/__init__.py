@@ -14,9 +14,13 @@ def register_routes(app: FastAPI):
     app.include_router(user_router, prefix="/api/users", tags=["Users"])
     app.include_router(company_router, prefix="/api/companies", tags=["Companies"])
 
-    app.include_router(price_category_router, prefix="/api/price-categories", tags=["PriceCategories"])
+    app.include_router(
+        price_category_router, prefix="/api/price-categories", tags=["PriceCategories"]
+    )
     app.include_router(price_router, prefix="/api/prices", tags=["Prices"])
     app.include_router(price_detail_router, prefix="/api/price-details", tags=["PriceDetails"])
     app.include_router(price_set_router, prefix="/api/price-sets", tags=["PriceSets"])
-    app.include_router(price_set_relation_router, prefix="/api/price-set-relations", tags=["PriceSetRelations"])
+    app.include_router(
+        price_set_relation_router, prefix="/api/price-set-relations", tags=["PriceSetRelations"]
+    )
     app.include_router(calculate_router, prefix="/api", tags=["Calculations"])

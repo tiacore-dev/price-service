@@ -5,8 +5,17 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from tiacore_lib.handlers.auth_handler import get_current_user
 
 from app.database.models import Price, PriceDetail
-from app.handlers.calculate_handler import InvalidPriceDetail, PriceRangeNotFound, compute_quote_amount
-from app.pydantic_models.calculate_models import GetPriceIDResponseSchema, GetPriceIDSchema, QuoteRequest, QuoteResponse
+from app.handlers.calculate_handler import (
+    InvalidPriceDetail,
+    PriceRangeNotFound,
+    compute_quote_amount,
+)
+from app.pydantic_models.calculate_models import (
+    GetPriceIDResponseSchema,
+    GetPriceIDSchema,
+    QuoteRequest,
+    QuoteResponse,
+)
 from app.utils.get_price_id import get_price_id
 
 calculate_router = APIRouter()

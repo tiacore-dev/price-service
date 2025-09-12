@@ -111,7 +111,9 @@ def price_filter_params(
     recipient_city: Optional[UUID] = Query(None),
     recipient_warehouse: Optional[UUID] = Query(None),
     service_type: Optional[ServiceType] = Query(None),
-    sort_by: Literal["created_at", "delivery_duration"] = Query("created_at", description="Поле сортировки"),
+    sort_by: Literal["created_at", "delivery_duration"] = Query(
+        "created_at", description="Поле сортировки"
+    ),
     order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),
